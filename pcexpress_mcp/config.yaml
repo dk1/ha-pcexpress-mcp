@@ -1,0 +1,32 @@
+name: PC Express MCP
+version: "1b131c9-p1"
+slug: pcexpress_mcp
+description: Unofficial PC Express grocery MCP server (upstream 1b131c9, bearer required on every route)
+url: https://github.com/FireBall1725/pcexpress-mcp-server
+arch:
+  - amd64
+startup: application
+boot: auto
+init: false
+map:
+  - type: share
+    read_only: false
+ports:
+  8090/tcp: 8090
+ports_description:
+  8090/tcp: MCP over SSE (bearer token required)
+watchdog: tcp://[HOST]:[PORT:8090]
+# The token file is a live, single-use credential: keep it out of backups.
+# After a restore, sign in again (a restored token would already be spent anyway).
+backup_exclude:
+  - pcid_token_state.json
+options:
+  bearer: ""
+  banner: independent
+  store_id: "0810"
+  keepalive_hours: 6
+schema:
+  bearer: password
+  banner: list(zehrs|loblaws|nofrills|superstore|independent|tandt)
+  store_id: match(^[0-9]{4}$)
+  keepalive_hours: int(1,24)

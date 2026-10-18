@@ -1,0 +1,44 @@
+--- a/pcexpress_mcp_server.py
++++ b/pcexpress_mcp_server.py
+@@ -595,9 +595,16 @@
+ 
+     bearer = os.getenv("PCEXPRESS_MCP_BEARER")
+     sse = SseServerTransport("/messages/")
++
++    import hmac
+ 
++    def authorized(header_value) -> bool:
++        if not bearer:
++            return True
++        return hmac.compare_digest((header_value or "").encode(), f"Bearer {bearer}".encode())
++
+     async def handle_sse(request):
+-        if bearer and request.headers.get("authorization") != f"Bearer {bearer}":
++        if not authorized(request.headers.get("authorization")):
+             return Response(status_code=401)
+         async with sse.connect_sse(request.scope, request.receive, request._send) as (r, w):
+             await app.run(r, w, app.create_initialization_options())
+@@ -605,6 +612,14 @@
+             Response()
+         )  # SSE response is already sent; give Starlette a callable to close cleanly
+ 
++    async def handle_messages(scope, receive, send):
++        # Upstream only checked the bearer on /sse; POSTs here carry the actual tool calls.
++        auth = dict(scope.get("headers") or []).get(b"authorization", b"").decode("latin-1")
++        if not authorized(auth):
++            await Response(status_code=401)(scope, receive, send)
++            return
++        await sse.handle_post_message(scope, receive, send)
++
+     async def health(_request):
+         return JSONResponse({"status": "ok"})
+ 
+@@ -612,7 +627,7 @@
+         routes=[
+             Route("/health", health, methods=["GET"]),
+             Route("/sse", handle_sse, methods=["GET"]),
+-            Mount("/messages/", app=sse.handle_post_message),
++            Mount("/messages/", app=handle_messages),
+         ]
+     )
+ 
