@@ -12,8 +12,8 @@ Every request needs `Authorization: Bearer <bearer>`.
 
 ## Signing in
 
-The log says `No PC id sign-in yet` until a sign-in arrives. From a computer with HA's
-`share` folder mounted, run `python3 tools/sign_in.py /Volumes/share` from the repository,
+The log says `No PC id sign-in yet` until a sign-in arrives. From your computer, run
+`python3 tools/sign_in.py ssh root@<ha-host>` (or `/Volumes/share` with Samba) from the repository,
 sign in in the browser, and paste the `com.loblaw.pcx://` address back into the script.
 
 To sign in again later (after a restore, a password change, or a renewal error in the log),

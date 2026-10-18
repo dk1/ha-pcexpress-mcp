@@ -29,8 +29,8 @@ Pinned to upstream commit `1b131c91bdcabeaee317c70e937592878d201668`, with:
 1. Settings → Apps → App store → ⋮ → Repositories → add `https://github.com/dk1/ha-pcexpress-mcp`.
 2. Install **PC Express MCP**. In its Configuration, set `bearer` to a long random value
    (`openssl rand -hex 32`), and set `banner` and `store_id`. Start it.
-3. Sign in once from a computer that has HA's `share` folder mounted:
-   `python3 tools/sign_in.py /Volumes/share`. The app picks it up within 30 seconds.
+3. Sign in once from your computer, either over SSH (the Terminal & SSH app with key auth) or a mounted Samba `share` folder:
+   `python3 tools/sign_in.py ssh root@<ha-host>` or `python3 tools/sign_in.py /Volumes/share`. The app picks it up within 30 seconds.
 4. Point your MCP client at `http://<ha-host>:8090/sse` with header
    `Authorization: Bearer <bearer>`. For Claude Code:
    `claude mcp add --transport sse pcexpress http://<ha-host>:8090/sse --header "Authorization: Bearer <bearer>"`
