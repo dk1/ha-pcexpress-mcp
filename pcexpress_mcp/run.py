@@ -86,7 +86,8 @@ def main() -> None:
     sys.path.insert(0, os.getenv("APP_SRC", "/app"))
 
     import signin_page
-    signin_page.serve(signin_page.SignIn(STATE, reload_tokens), int(os.getenv("SIGNIN_PORT", "8099")))
+    signin = signin_page.SignIn(STATE, reload_tokens, int(opts.get("keepalive_hours", 6)))
+    signin_page.serve(signin, int(os.getenv("SIGNIN_PORT", "8099")))
 
     import_seed()
     while not os.path.exists(STATE):

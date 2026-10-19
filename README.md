@@ -32,7 +32,8 @@ Pinned to upstream commit `1b131c91bdcabeaee317c70e937592878d201668`, with:
 2. Install **PC Express MCP**. In its Configuration, set `bearer` to a long random value
    (`openssl rand -hex 32`), and set `banner` and `store_id`. Start it.
 3. Open the app's **Open web UI** (or **PC Express** in the sidebar) on a computer, click
-   **Sign in to PC id**, sign in, and paste the `com.loblaw.pcx://` address the tab ends on.
+   **Sign in to PC id**, sign in, and paste the `com.loblaw.pcx://` address (in Chrome it's in the
+   developer console as a `Failed to launch` line; the page explains).
    The MCP server starts as soon as the sign-in is stored. (Alternative without the web UI:
    `python3 tools/sign_in.py ssh root@<ha-host>` or `python3 tools/sign_in.py /Volumes/share`.)
 4. Point your MCP client at `http://<ha-host>:8090/sse` with header
