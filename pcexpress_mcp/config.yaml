@@ -1,5 +1,5 @@
 name: PC Express MCP
-version: "1b131c9-p1"
+version: "1b131c9-p2"
 slug: pcexpress_mcp
 description: Unofficial PC Express grocery MCP server (upstream 1b131c9, bearer required on every route)
 url: https://github.com/FireBall1725/pcexpress-mcp-server
@@ -8,6 +8,11 @@ arch:
 startup: application
 boot: auto
 init: false
+# Sign-in page, reached only through HA (Open web UI); protected by your HA login.
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:cart
+panel_title: PC Express
 map:
   - type: share
     read_only: false

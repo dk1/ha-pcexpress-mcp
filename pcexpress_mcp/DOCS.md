@@ -12,12 +12,16 @@ Every request needs `Authorization: Bearer <bearer>`.
 
 ## Signing in
 
-The log says `No PC id sign-in yet` until a sign-in arrives. From your computer, run
-`python3 tools/sign_in.py ssh root@<ha-host>` (or `/Volumes/share` with Samba) from the repository,
-sign in in the browser, and paste the `com.loblaw.pcx://` address back into the script.
+Until you sign in, the log says `No PC id sign-in yet` and the MCP port stays closed.
 
-To sign in again later (after a restore, a password change, or a renewal error in the log),
-run it again and then restart the app.
+1. Open **Open web UI** on this page (or **PC Express** in the sidebar). Use a computer, not
+   a phone with the PC Express app installed: that app would grab the sign-in.
+2. Click **Sign in to PC id** and sign in in the new tab.
+3. The tab ends on an error page whose address starts with `com.loblaw.pcx://`. Copy the
+   whole address, paste it into the box, and click **Finish sign-in**.
+
+Do the same to sign in again later (after a restore, a password change, or a renewal error
+in the log). It replaces the old sign-in without a restart.
 
 ## Notes
 

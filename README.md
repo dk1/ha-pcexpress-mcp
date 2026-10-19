@@ -20,7 +20,9 @@ Pinned to upstream commit `1b131c91bdcabeaee317c70e937592878d201668`, with:
   every renewal. The app is the only holder and renews on a timer (default every 6 h) inside
   the same process, so the sign-in doesn't lapse between uses.
 - **Token kept out of backups** (`backup_exclude`). After a restore, sign in again.
-- **Sign-in drop file.** `tools/sign_in.py` runs upstream's browser login on your computer and
+- **Sign-in page.** Served through HA ingress, so only your HA login can reach it; it never
+  shows the token and rejects pasted addresses from a different sign-in attempt.
+- **Sign-in drop file (alternative).** `tools/sign_in.py` runs upstream's browser login on your computer and
   writes the refresh token to `/share/pcexpress_mcp/seed.json` without printing it. The app
   imports and deletes it.
 
@@ -29,8 +31,10 @@ Pinned to upstream commit `1b131c91bdcabeaee317c70e937592878d201668`, with:
 1. Settings → Apps → App store → ⋮ → Repositories → add `https://github.com/dk1/ha-pcexpress-mcp`.
 2. Install **PC Express MCP**. In its Configuration, set `bearer` to a long random value
    (`openssl rand -hex 32`), and set `banner` and `store_id`. Start it.
-3. Sign in once from your computer, either over SSH (the Terminal & SSH app with key auth) or a mounted Samba `share` folder:
-   `python3 tools/sign_in.py ssh root@<ha-host>` or `python3 tools/sign_in.py /Volumes/share`. The app picks it up within 30 seconds.
+3. Open the app's **Open web UI** (or **PC Express** in the sidebar) on a computer, click
+   **Sign in to PC id**, sign in, and paste the `com.loblaw.pcx://` address the tab ends on.
+   The MCP server starts as soon as the sign-in is stored. (Alternative without the web UI:
+   `python3 tools/sign_in.py ssh root@<ha-host>` or `python3 tools/sign_in.py /Volumes/share`.)
 4. Point your MCP client at `http://<ha-host>:8090/sse` with header
    `Authorization: Bearer <bearer>`. For Claude Code:
    `claude mcp add --transport sse pcexpress http://<ha-host>:8090/sse --header "Authorization: Bearer <bearer>"`
