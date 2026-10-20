@@ -1,5 +1,5 @@
 name: PC Express MCP
-version: "1b131c9-p4"
+version: "1b131c9-p5"
 slug: pcexpress_mcp
 description: Unofficial PC Express grocery MCP server (upstream 1b131c9, bearer required on every route), with Fridge Check
 url: https://github.com/FireBall1725/pcexpress-mcp-server

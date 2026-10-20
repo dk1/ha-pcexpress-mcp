@@ -1,0 +1,3 @@
+[submodule "pcexpress_mcp/upstream"]
+	path = pcexpress_mcp/upstream
+	url = https://github.com/FireBall1725/pcexpress-mcp-server.git

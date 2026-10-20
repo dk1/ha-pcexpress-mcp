@@ -10,7 +10,9 @@ Use it on your own account at your own risk.
 
 ## What's different from upstream
 
-Pinned to upstream commit `1b131c91bdcabeaee317c70e937592878d201668`, with:
+Upstream is the git submodule `pcexpress_mcp/upstream`, pinned to commit
+`1b131c91bdcabeaee317c70e937592878d201668`. The Docker build copies the files it needs from it
+and applies `pcexpress_mcp/patches/*.patch` in order. Changes:
 
 - **Bearer token required on every route.** Upstream only checked it on `/sse`; tool calls
   arrive as POSTs to `/messages/`, which were unauthenticated. See
@@ -48,7 +50,23 @@ Pinned to upstream commit `1b131c91bdcabeaee317c70e937592878d201668`, with:
 Don't port-forward 8090 or put it behind a public proxy. Run only this one copy against your
 account: a second copy using the same sign-in will lock both out.
 
+## Upgrading upstream
+
+Dependabot opens a weekly PR when upstream moves. To upgrade by hand:
+
+1. `git -C pcexpress_mcp/upstream fetch origin && git -C pcexpress_mcp/upstream checkout <commit>`
+2. Check every patch still applies with no fuzz:
+   `for p in pcexpress_mcp/patches/*.patch; do patch -p1 --forward --fuzz=0 --dry-run -d pcexpress_mcp/upstream < $p; done`
+   (`--dry-run` leaves the submodule untouched). Refresh any patch that fails, and drop one
+   upstream has merged. New patches are numbered and written to apply with `patch -p1` from
+   the upstream root.
+3. Bump `version` in `pcexpress_mcp/config.yaml` (`<upstream short sha>-p<n>`), update the commit
+   above, commit `pcexpress_mcp/upstream` with the rest, and push.
+
+Clone with `git clone --recursive` (or run `git submodule update --init`) so
+`tools/sign_in.py` can find upstream's `login_pcid.py`.
+
 ## License
 
-AGPL-3.0, same as upstream. The vendored source in `pcexpress_mcp/app/` and `tools/` is
-upstream's, modified only as described above.
+AGPL-3.0, same as upstream. Upstream's source is unmodified in the submodule; the build
+changes it only as described above.

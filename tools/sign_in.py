@@ -13,7 +13,13 @@ import subprocess
 import sys
 import tempfile
 
-import login_pcid
+# Upstream's login helper comes from the pcexpress_mcp/upstream submodule
+# (clone with --recursive, or run `git submodule update --init`).
+UPSTREAM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pcexpress_mcp", "upstream")
+if not os.path.exists(os.path.join(UPSTREAM, "login_pcid.py")):
+    sys.exit("pcexpress_mcp/upstream is empty: run `git submodule update --init` first.")
+sys.path.insert(0, UPSTREAM)
+import login_pcid  # noqa: E402
 
 
 def write_private(path: str, token: str) -> None:
