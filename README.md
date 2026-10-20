@@ -22,6 +22,9 @@ Pinned to upstream commit `1b131c91bdcabeaee317c70e937592878d201668`, with:
 - **Token kept out of backups** (`backup_exclude`). After a restore, sign in again.
 - **Sign-in page.** Served through HA ingress, so only your HA login can reach it; it never
   shows the token and rejects pasted addresses from a different sign-in attempt.
+- **Fridge Check.** A shared grocery checklist in the web UI, built from your order history and
+  sorted by where things live at home, with a **Send to cart** button that sets cart quantities
+  (never lowering or removing anything). Runs in the same process, so there's still one token holder.
 - **Sign-in drop file (alternative).** `tools/sign_in.py` runs upstream's browser login on your computer and
   writes the refresh token to `/share/pcexpress_mcp/seed.json` without printing it. The app
   imports and deletes it.
@@ -36,7 +39,9 @@ Pinned to upstream commit `1b131c91bdcabeaee317c70e937592878d201668`, with:
    developer console as a `Failed to launch` line; the page explains).
    The MCP server starts as soon as the sign-in is stored. (Alternative without the web UI:
    `python3 tools/sign_in.py ssh root@<ha-host>` or `python3 tools/sign_in.py /Volumes/share`.)
-4. Point your MCP client at `http://<ha-host>:8090/sse` with header
+4. Open the web UI again on your phone for **Fridge Check**. The first checklist takes about a
+   minute to build from your orders.
+5. Point your MCP client at `http://<ha-host>:8090/sse` with header
    `Authorization: Bearer <bearer>`. For Claude Code:
    `claude mcp add --transport sse pcexpress http://<ha-host>:8090/sse --header "Authorization: Bearer <bearer>"`
 

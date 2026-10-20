@@ -16,12 +16,10 @@ import secrets
 import threading
 import time
 import urllib.parse
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import login_pcid
 
 log = logging.getLogger("signin")
-INGRESS_PROXY = os.getenv("SIGNIN_ALLOWED_CLIENT", "172.30.32.2")
 PENDING_TTL = 15 * 60  # an unused sign-in link expires after this
 REDIRECT_RE = re.compile(r"com\.loblaw\.pcx://[^\s'\"<>]+")
 
@@ -246,7 +244,8 @@ def render(signin: SignIn, *, message: str = "", ok: bool = False, fresh: bool =
         who = f" as <strong>{html.escape(info['account'])}</strong>" if info["account"] else ""
         summary = f"""<section class="card ok"><p><strong>Signed in</strong>{who}.</p>
           <p class="muted">Signed in {ago(info['signed_in_at'])} · last renewed {ago(info['renewed_at'])}. The MCP server is using it.</p>
-          <p><button class="btn secondary" id="replace" type="button">Replace sign-in…</button></p></section>"""
+          <p class="row"><a class="btn" href="./">Open Fridge Check</a>
+           <button class="btn secondary" id="replace" type="button">Replace sign-in…</button></p></section>"""
     else:
         summary = '<section class="card"><p><strong>Not signed in yet.</strong> The MCP server starts once you finish these steps.</p></section>'
     msg = f'<section class="card {"ok" if ok else "err"}"><p>{html.escape(message)}</p></section>' if message and not (ok and info) else ""
@@ -257,55 +256,3 @@ def render(signin: SignIn, *, message: str = "", ok: bool = False, fresh: bool =
         link_disabled='aria-disabled="true" tabindex="-1"' if signed_in else "",
     )
     return page.encode()
-
-
-def make_handler(signin: SignIn):
-    class Handler(BaseHTTPRequestHandler):
-        def log_message(self, fmt, *args):  # keep request lines (and pasted codes) out of the log
-            pass
-
-        def _allowed(self) -> bool:
-            if self.client_address[0] != INGRESS_PROXY:
-                self.send_error(403)
-                return False
-            return True
-
-        def _send(self, body: bytes):
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def do_GET(self):
-            if not self._allowed():
-                return
-            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            err = q.get("err", [""])[0]
-            if q.get("new"):
-                self._send(render(signin, fresh=True))
-            elif err in ERRORS:
-                self._send(render(signin, message=ERRORS[err], fresh=True))
-            else:
-                self._send(render(signin))
-
-        def do_POST(self):
-            if not self._allowed():
-                return
-            length = min(int(self.headers.get("Content-Length") or 0), 8192)
-            form = urllib.parse.parse_qs(self.rfile.read(length).decode(errors="replace"))
-            err = signin.complete(form.get("redirect", [""])[0])
-            # Post/redirect/get, so reloading the result page never resubmits a used code.
-            self.send_response(303)
-            self.send_header("Location", "./" if err is None else f"./?err={err}")
-            self.send_header("Content-Length", "0")
-            self.end_headers()
-
-    return Handler
-
-
-def serve(signin: SignIn, port: int = 8099) -> None:
-    server = ThreadingHTTPServer(("0.0.0.0", port), make_handler(signin))
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    log.info("Sign-in page ready (open it from the app's 'Open web UI')")

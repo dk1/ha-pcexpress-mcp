@@ -9,7 +9,8 @@ WORKDIR /app
 COPY app/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY app/ /app/
-COPY signin_page.py /app/signin_page.py
+COPY signin_page.py ingress.py /app/
+COPY fridge_check/ /app/fridge_check/
 COPY run.py /run.py
 
 CMD ["python3", "/run.py"]

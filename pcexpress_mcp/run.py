@@ -1,7 +1,8 @@
 """App entrypoint for the PC Express MCP server.
 
 - Refuses to start without a strong bearer token (every MCP route requires it).
-- Serves a sign-in page through HA ingress ("Open web UI"), protected by your HA login.
+- Serves the web UI through HA ingress ("Open web UI"), protected by your HA login:
+  the sign-in page and Fridge Check (checklist + Send to cart).
 - Also accepts a sign-in dropped at /share/pcexpress_mcp/seed.json (tools/sign_in.py).
 - Renews the PC id token on a timer inside this same process, so the single-use
   refresh token never lapses between shops and never has a second holder.
@@ -85,9 +86,13 @@ def main() -> None:
     os.environ.pop("PCEXPRESS_REFRESH_TOKEN", None)
     sys.path.insert(0, os.getenv("APP_SRC", "/app"))
 
+    import fridge_check
+    import ingress
     import signin_page
     signin = signin_page.SignIn(STATE, reload_tokens, int(opts.get("keepalive_hours", 6)))
-    signin_page.serve(signin, int(os.getenv("SIGNIN_PORT", "8099")))
+    # Fridge Check calls the MCP server's own API client in-process: still one token holder.
+    fridge = fridge_check.FridgeCheck(DATA, lambda: srv.get_api_client() if srv else None)
+    ingress.serve(signin, fridge, int(os.getenv("SIGNIN_PORT", "8099")))
 
     import_seed()
     while not os.path.exists(STATE):
@@ -101,6 +106,7 @@ def main() -> None:
     import pcexpress_mcp_server
     srv = pcexpress_mcp_server
     threading.Thread(target=keepalive, args=(int(opts.get("keepalive_hours", 6)),), daemon=True).start()
+    fridge.start_rebuilder()
     srv.main_http()
 
 

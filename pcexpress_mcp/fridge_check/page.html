@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fridge Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-handed phone checklist. Sticky header with section chips; dense rows grouped
+   by where things live at home; Have / Need buttons in the thumb column on the right. */
+:root {
+  --bg: #eef2ee;
+  --surface: #ffffff;
+  --ink: #15211b;
+  --muted: #5d6b63;
+  --line: #d5ddd7;
+  --accent: #1f7a4a;      /* Need */
+  --accent-ink: #ffffff;
+  --have: #e3e9e4;        /* Have */
+  --z-fridge: #2f6f9f;
+  --z-freezer: #6656a8;
+  --z-counter: #3f8a2f;
+  --z-pantry: #a86a1c;
+  --z-stock: #6b7480;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1612; --surface: #18221c; --ink: #e6eee8; --muted: #93a39a; --line: #2a3830;
+    --accent: #3fb27a; --accent-ink: #06150d; --have: #26332b;
+    --z-fridge: #6fb0e0; --z-freezer: #a99af0; --z-counter: #7fcf63; --z-pantry: #e0a35a; --z-stock: #a7b0bb;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1612; --surface: #18221c; --ink: #e6eee8; --muted: #93a39a; --line: #2a3830;
+  --accent: #3fb27a; --accent-ink: #06150d; --have: #26332b;
+  --z-fridge: #6fb0e0; --z-freezer: #a99af0; --z-counter: #7fcf63; --z-pantry: #e0a35a; --z-stock: #a7b0bb;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--ink); font: 16px/1.4 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 560px; margin: 0 auto; }
+header {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--bg);
+  padding-block: 10px 8px; display: grid; gap: 8px;
+}
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { font: 800 1.3rem/1 var(--display); letter-spacing: -0.01em; margin: 0; }
+.count { font: 500 0.78rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--have); border-radius: 10px; padding: 3px; }
+.tabs button { border: 0; background: none; color: var(--muted); font: 700 0.9rem var(--body); padding: 7px 4px; border-radius: 8px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+.jump { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.jump button {
+  flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 9px;
+  font: 700 0.72rem var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--zc); cursor: pointer;
+  display: inline-flex; gap: 5px; align-items: center;
+}
+.jump b { font: 500 0.7rem var(--mono); color: var(--muted); letter-spacing: 0; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main { padding-block: 2px 24px; }
+
+[data-zone="Fridge"] { --zc: var(--z-fridge); }
+[data-zone="Freezer"] { --zc: var(--z-freezer); }
+[data-zone="Counter"] { --zc: var(--z-counter); }
+[data-zone="Pantry"] { --zc: var(--z-pantry); }
+[data-zone="Stock-ups"] { --zc: var(--z-stock); }
+.store { --zc: var(--accent); }
+
+.zone { display: inline-flex; align-items: center; gap: 6px; font: 700 0.72rem var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--zc); }
+.zone::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--zc); }
+.group { display: grid; gap: 6px; margin-bottom: 16px; scroll-margin-top: 150px; }
+.group > .zone { padding: 6px 2px 0; }
+.group h3 { font: 700 0.8rem var(--body); color: var(--muted); margin: 6px 2px 0; }
+.note { font-size: 0.82rem; color: var(--muted); margin: 0 2px; }
+
+.item {
+  display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  background: var(--surface); border-radius: 12px; padding: 8px; min-height: 76px; user-select: none; -webkit-user-select: none;
+}
+.item img, .item .ph { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; background: #fff; }
+.item .ph { background: var(--have); }
+.item .nm { min-width: 0; display: grid; gap: 3px; }
+.item .nm strong { display: block; font-size: 1rem; line-height: 1.2; }
+.item .nm small { display: block; font: 400 0.7rem var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item.have { opacity: .55; }
+.item.need { box-shadow: inset 3px 0 0 var(--accent); }
+.seg { display: flex; gap: 4px; }
+.seg button {
+  border: 1px solid var(--line); background: none; color: var(--muted); border-radius: 9px;
+  font: 700 0.85rem var(--body); cursor: pointer; height: 52px; font-variant-numeric: tabular-nums;
+}
+.seg .have { width: 52px; }
+.seg .need { width: 74px; white-space: nowrap; }
+.seg .have[aria-pressed="true"] { background: var(--have); border-color: var(--have); color: var(--ink); }
+.seg .need[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.seg button:active { transform: scale(.96); }
+
+.foot { display: grid; gap: 8px; font-size: 0.85rem; color: var(--muted); padding-block: 8px 16px; }
+.foot label { display: flex; gap: 10px; align-items: center; }
+.foot input { width: 20px; height: 20px; accent-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 1px dashed var(--line); background: none; color: var(--muted); border-radius: 999px; padding: 4px 10px; font: 0.8rem var(--body); cursor: pointer; }
+
+.list { display: grid; }
+.li { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 9px 2px; border-bottom: 1px solid var(--line); }
+.li .q { font: 500 0.9rem var(--mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+.li small { display: block; font: 400 0.72rem var(--mono); color: var(--muted); }
+.li .p { font: 500 0.85rem var(--mono); font-variant-numeric: tabular-nums; }
+.li .x { border: 0; background: none; color: var(--muted); font-size: 1.1rem; width: 32px; height: 32px; cursor: pointer; border-radius: 8px; }
+.total { display: flex; justify-content: space-between; font: 500 0.9rem var(--mono); padding: 12px 2px; }
+.add { display: flex; gap: 8px; margin-top: 8px; }
+.add input { flex: 1; min-width: 0; font: 1rem var(--body); padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.add button, .wide { border: 0; border-radius: 12px; padding: 12px 16px; font: 700 0.95rem var(--body); cursor: pointer; background: var(--ink); color: var(--bg); }
+.wide { width: 100%; margin-top: 12px; padding: 15px; }
+.wide.ghost { background: none; color: var(--muted); border: 1px solid var(--line); }
+.hint { font-size: 0.8rem; color: var(--muted); text-align: center; }
+.empty { text-align: center; color: var(--muted); padding: 36px 12px; display: grid; gap: 6px; }
+.empty strong { font: 800 1.25rem var(--display); color: var(--ink); }
+.confirm { display: flex; gap: 8px; }
+.confirm button { flex: 1; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font: 700 0.9rem var(--body); }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+a { color: var(--accent); }
+.wide.go { background: var(--accent); color: var(--accent-ink); }
+.wide:disabled, .link:disabled { opacity: .5; cursor: progress; }
+.link { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+.bad { color: #b03030; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .bad { color: #ff8a8a; } }
+:root[data-theme="dark"] .bad { color: #ff8a8a; }
+.result { background: var(--surface); border-radius: 12px; padding: 12px; margin-top: 12px; display: grid; gap: 2px; }
+.rh { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 6px; font: 500 0.85rem var(--mono); }
+.rh strong { font: 700 1rem var(--body); }
+.rl { display: grid; grid-template-columns: 1.4em minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.rl .ic { font-weight: 700; color: var(--accent); text-align: center; }
+.rl.bad .ic { color: inherit; }
+.rl small { display: block; font: 400 0.72rem var(--mono); color: var(--muted); }
+.rl.bad small { color: inherit; }
+.rl .p { font: 500 0.85rem var(--mono); font-variant-numeric: tabular-nums; }
+.total.sub { padding-top: 0; color: var(--muted); }
+</style>
+
+</head><body>
+<div class="wrap">
+  <header>
+    <div class="top"><h1>Fridge Check</h1><span class="count" id="count"></span></div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-check" data-view="check">Check</button>
+      <button role="tab" id="tab-list" data-view="list">List</button>
+    </div>
+    <div class="jump" id="jump"></div>
+  </header>
+  <main id="main"><div class="empty"><strong>Loading…</strong></div></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// All URLs are relative: HA ingress serves this page under /api/hassio_ingress/<token>/.
+let DATA = null, ZONES = [], STORE_ORDER = [];
+let base = null;            // last state from the server
+let pending = [], inflight = null;   // ops not yet confirmed by the server
+let building = false, buildError = null, offline = false, cartBusy = false;
+const VIEW_KEY = "fridgecheck.view";
+let view = (() => { try { return localStorage.getItem(VIEW_KEY) || "check"; } catch { return "check"; } })();
+if (!["check", "list"].includes(view)) view = "check";
+const today = new Date();
+
+const api = async (path, body) => {
+  const r = await fetch(path, body === undefined ? { cache: "no-store" } : {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(data.error || `HTTP ${r.status}`), { status: r.status });
+  return data;
+};
+
+// The same operations the server applies (fridge_check/state.py), so taps show instantly.
+function applyOp(s, op) {
+  const a = s.answers;
+  if (op.op === "tap") a[op.need] = op.v === "have" ? "have" : (typeof a[op.need] === "number" ? a[op.need] + 1 : 1);
+  else if (op.op === "have") a[op.need] = "have";
+  else if (op.op === "hide") { if (!s.hidden.includes(op.need)) s.hidden.push(op.need); delete a[op.need]; }
+  else if (op.op === "unhide") s.hidden = s.hidden.filter(h => h !== op.need);
+  else if (op.op === "occasional") s.occasional = !!op.on;
+  else if (op.op === "addExtra") s.extras.push({ id: op.id, text: op.text });
+  else if (op.op === "rmExtra") s.extras = s.extras.filter(x => x.id !== op.id);
+  else if (op.op === "reset") { s.answers = {}; s.extras = []; s.lastCart = null; }
+}
+let S = null;  // base + pending ops: what the page shows
+function recompute() {
+  S = JSON.parse(JSON.stringify(base));
+  [...(inflight || []), ...pending].forEach(op => applyOp(S, op));
+}
+function send(op) {
+  pending.push(op); recompute(); flush();
+}
+async function flush() {
+  if (inflight || !pending.length) return;
+  inflight = pending; pending = [];
+  try {
+    const r = await api("api/ops", { ops: inflight });
+    base = r.state; inflight = null; setOffline(false);
+  } catch {
+    pending = [...inflight, ...pending]; inflight = null; setOffline(true);
+    setTimeout(flush, 3000); return;
+  }
+  recompute();
+  if (pending.length) flush(); else rerenderIfChanged();
+}
+function setOffline(v) { if (v !== offline) { offline = v; header(); } }
+
+// Pick up taps from other phones.
+let shownVersion = -1;
+async function poll() {
+  if (document.hidden || inflight || pending.length || cartBusy) return;
+  try {
+    const r = await api(building ? "api/data" : "api/state");
+    setOffline(false);
+    if (r.checklist !== undefined) {
+      const was = building; building = r.building; buildError = r.error;
+      if (r.checklist) setData(r.checklist);
+      if (was && !building) { render(); toast(buildError ? "Refresh failed" : "Checklist refreshed"); }
+    } else if (r.building) building = true;
+    if (inflight || pending.length) return;
+    base = r.state; recompute(); rerenderIfChanged();
+  } catch { setOffline(true); }
+}
+function rerenderIfChanged() { if (S.version !== shownVersion) render(); }
+setInterval(poll, 8000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const money = n => n == null ? "" : "$" + n.toFixed(2);
+const ago = iso => {
+  const d = Math.round((today - new Date(iso + "T12:00")) / 864e5);
+  if (d < 14) return d + "d ago";
+  if (d < 60) return Math.round(d / 7) + " wk ago";
+  if (d < 730) return Math.round(d / 30.4) + " mo ago";
+  return (d / 365).toFixed(1) + " yr ago";
+};
+const img = sku => !sku.img ? "" : /^https?:/.test(sku.img) ? sku.img : DATA.imgBase + sku.img;
+const qty = n => typeof S.answers[n.need] === "number" ? S.answers[n.need] : 0;
+
+// Everything you could be asked about, already in walk order (zone, spot, shelf order).
+const pool = () => DATA.needs.filter(n => (S.occasional || n.timesBought > 1 || n.stockUp) && !S.hidden.includes(n.need));
+const bySpot = list => list.reduce((m, n) => ((m[n.spot] ||= []).push(n), m), {});
+
+function header() {
+  if (!DATA) return;
+  const list = pool(), done = list.filter(n => S.answers[n.need]).length;
+  const buying = list.filter(qty).length + S.extras.length;
+  document.getElementById("count").textContent = offline ? "offline · retrying" : `${done}/${list.length} checked · ${buying} to buy`;
+  document.getElementById("bar").style.width = (list.length ? done / list.length * 100 : 0) + "%";
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === view));
+  document.getElementById("tab-list").textContent = buying ? `List (${buying})` : "List";
+  const jump = document.getElementById("jump");
+  jump.hidden = view !== "check";
+  jump.innerHTML = ZONES.map(z => {
+    const zl = list.filter(n => n.zone === z); if (!zl.length) return "";
+    return `<button data-zone="${z}" data-go="${z}">${z}<b>${zl.filter(n => S.answers[n.need]).length}/${zl.length}</b></button>`;
+  }).join("");
+  jump.querySelectorAll("[data-go]").forEach(b => b.onclick = () =>
+    document.getElementById("z-" + b.dataset.go)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
+}
+
+function itemRow(n) {
+  const a = S.answers[n.need], q = qty(n), src = img(n.usual);
+  const usual = n.usualQty > 1 ? `usually ${n.usualQty} · ` : "";
+  return `<div class="item ${a === "have" ? "have" : q ? "need" : ""}" data-row="${esc(n.need)}">
+    ${src ? `<img alt="" loading="lazy" src="${esc(src)}">` : `<span class="ph"></span>`}
+    <div class="nm"><strong>${esc(n.need)}</strong><small>${usual}${ago(n.lastBought)} · ${esc(n.usual.name)}</small></div>
+    <div class="seg">
+      <button class="have" aria-pressed="${a === "have"}" data-v="have" aria-label="Have enough ${esc(n.need)}">Have</button>
+      <button class="need" aria-pressed="${q > 0}" data-v="need" aria-label="Need ${esc(n.need)}${q ? `, ${q} so far` : ""}">${q ? `Need ×${q}` : "Need"}</button>
+    </div></div>`;
+}
+
+function bindRow(row) {
+  const k = row.dataset.row;
+  row.querySelectorAll(".seg button").forEach(b => b.onclick = () => { send({ op: "tap", need: k, v: b.dataset.v }); update(row); });
+}
+
+// Re-render one row in place so the page doesn't jump while you tap down the list.
+function update(row) {
+  const n = DATA.needs.find(x => x.need === row.dataset.row);
+  const tmp = document.createElement("div"); tmp.innerHTML = itemRow(n);
+  const fresh = tmp.firstElementChild;
+  row.className = fresh.className;
+  row.querySelector(".seg").replaceWith(fresh.querySelector(".seg"));
+  bindRow(row);
+  header();
+}
+
+function renderCheck(main) {
+  const list = pool();
+  const groups = ZONES.map(z => {
+    const zl = list.filter(n => n.zone === z); if (!zl.length) return "";
+    const note = z === "Stock-ups" ? `<p class="note">Things you refill every few weeks.</p>` : "";
+    return `<section class="group" id="z-${z}" data-zone="${z}"><span class="zone">${z}</span>${note}${Object.entries(bySpot(zl)).map(([s, rows]) =>
+      `<h3>${esc(s)}</h3>${rows.map(itemRow).join("")}`).join("")}</section>`;
+  }).join("");
+  const occ = DATA.needs.filter(n => n.timesBought === 1 && !n.stockUp).length;
+  const hidden = S.hidden.length ? `<div>Not asking about:</div><div class="chips">${S.hidden.map(h => `<button data-unhide="${esc(h)}">${esc(h)} ↺</button>`).join("")}</div>` : "";
+  const failed = (DATA.failedOrders || []).length ? ` · ${DATA.failedOrders.length} couldn't load` : "";
+  main.innerHTML = `${groups}
+    <div class="foot">
+      <div>Tap Need again to add more. Have clears it. Long-press a row to stop asking about it.</div>
+      <label><input type="checkbox" id="occ" ${S.occasional ? "checked" : ""}> Include one-off buys (${occ} more items)</label>
+      ${hidden}
+      <div class="src">Built from ${DATA.orders} orders on ${esc(DATA.generated)}${failed}.
+        <button class="link" id="refresh" ${building ? "disabled" : ""}>${building ? "Refreshing…" : "Refresh from orders"}</button></div>
+      ${buildError ? `<div class="bad">Last refresh failed: ${esc(buildError)}</div>` : ""}
+      <div><a href="./?signin=1">PC Express sign-in</a></div>
+    </div>`;
+  main.querySelectorAll(".item").forEach(row => {
+    bindRow(row);
+    let t; const k = row.dataset.row;
+    const hide = () => { send({ op: "hide", need: k }); render(); toast(`Won't ask about ${k}`); };
+    const start = e => { if (e.target.closest("button")) return; t = setTimeout(hide, 650); };
+    const stop = () => clearTimeout(t);
+    row.addEventListener("touchstart", start, { passive: true }); row.addEventListener("touchend", stop); row.addEventListener("touchmove", stop, { passive: true });
+    row.addEventListener("contextmenu", e => { e.preventDefault(); stop(); hide(); });
+  });
+  main.querySelector("#occ").onchange = e => { send({ op: "occasional", on: e.target.checked }); render(); };
+  main.querySelectorAll("[data-unhide]").forEach(b => b.onclick = () => { send({ op: "unhide", need: b.dataset.unhide }); render(); });
+  main.querySelector("#refresh").onclick = refresh;
+}
+
+async function refresh() {
+  try { await api("api/refresh", {}); building = true; buildError = null; render(); toast("Reading your orders…"); }
+  catch (e) { toast(e.message); }
+}
+
+function listLines() {
+  const buying = DATA.needs.filter(qty);
+  return STORE_ORDER.map(z => ({ z, rows: buying.filter(n => n.store === z) })).filter(g => g.rows.length);
+}
+
+const STATUS = {
+  added: ["✓", "Added"], raised: ["✓", "Raised to"], already: ["✓", "Already in cart"],
+  unavailable: ["!", "Not available, no alternate in stock"], error: ["!", "Couldn't add"],
+};
+function cartResult(r) {
+  if (!r) return "";
+  const bad = r.lines.filter(l => l.status === "unavailable" || l.status === "error");
+  const when = new Date(r.at * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return `<section class="result" id="result">
+    <div class="rh"><strong>Sent to cart at ${when}</strong><span>${r.lines.length - bad.length}/${r.lines.length} lines</span></div>
+    ${r.lines.map(l => {
+      const [icon, label] = STATUS[l.status] || ["?", l.status];
+      const detail = l.status === "raised" || l.status === "already" ? `${label} ${l.inCart}` : l.status === "added" ? `${label} ${l.qty}` : label;
+      return `<div class="rl ${l.status === "unavailable" || l.status === "error" ? "bad" : ""}"><span class="ic">${icon}</span>
+        <span><strong>${esc(l.need)}</strong><small>${esc(detail)}${l.alternate ? " · alternate: " + esc(l.name) : ""}${l.error ? " · " + esc(l.error) : ""}</small></span>
+        <span class="p">${l.price != null && !bad.includes(l) ? money(l.price * l.qty) : ""}</span></div>`;
+    }).join("")}
+    <div class="total"><span>Est. for these lines</span><span>${money(r.estimate)}</span></div>
+    <div class="total sub"><span>Whole cart (${r.cartItems} items)</span><span>${money(r.cartEstimate)}</span></div>
+    ${r.extras.length ? `<p class="note">Add these yourself: ${r.extras.map(esc).join(", ")}.</p>` : ""}
+    <p class="note">Nothing was removed or lowered. Finish checkout in the <strong>PC Express app</strong>.</p>
+  </section>`;
+}
+
+function renderList(main) {
+  const groups = listLines();
+  const total = groups.flatMap(g => g.rows).reduce((s, n) => s + (n.usual.price || 0) * qty(n), 0);
+  const lines = groups.flatMap(g => g.rows).length;
+  const body = groups.length || S.extras.length ? `
+    <p class="note">In store order.</p>
+    ${groups.map(g => `<section class="group store"><span class="zone">${g.z}</span><div class="list">${g.rows.map(n => `
+      <div class="li"><span class="q">${qty(n)}×</span><span><strong>${esc(n.need)}</strong><small>${esc(n.usual.name)}</small></span>
+      <span class="p">${money((n.usual.price || 0) * qty(n))}</span><button class="x" aria-label="Remove ${esc(n.need)}" data-rm="${esc(n.need)}">×</button></div>`).join("")}</div></section>`).join("")}
+    ${S.extras.length ? `<section class="group"><span class="zone" style="--zc:var(--muted)">Also</span><div class="list">${S.extras.map(x => `
+      <div class="li"><span class="q"></span><span><strong>${esc(x.text)}</strong></span><span></span><button class="x" aria-label="Remove ${esc(x.text)}" data-rmx="${esc(x.id)}">×</button></div>`).join("")}</div></section>` : ""}
+    <div class="total"><span>Est. at last prices</span><span>${money(total)}</span></div>`
+    : `<div class="empty"><strong>Your list is empty</strong>Tap Need on the Check tab, or add something below.</div>`;
+  main.innerHTML = `${body}
+    <form class="add" id="add"><input id="extra" placeholder="Add something else…" autocomplete="off"><button>Add</button></form>
+    <div id="cart-wrap">${lines ? `<button class="wide go" id="cart" ${cartBusy ? "disabled" : ""}>${cartBusy ? "Sending to cart…" : `Send ${lines} item${lines > 1 ? "s" : ""} to cart`}</button>` : ""}</div>
+    ${cartResult(S.lastCart)}
+    <button class="wide ghost" id="copy">Copy list</button>
+    <div id="reset-wrap"><button class="wide ghost" id="reset">Start a new check</button></div>`;
+  main.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { send({ op: "have", need: b.dataset.rm }); render(); });
+  main.querySelectorAll("[data-rmx]").forEach(b => b.onclick = () => { send({ op: "rmExtra", id: b.dataset.rmx }); render(); });
+  main.querySelector("#add").onsubmit = e => {
+    e.preventDefault(); const v = main.querySelector("#extra").value.trim();
+    if (v) { send({ op: "addExtra", id: Math.random().toString(36).slice(2, 10), text: v }); render(); main.querySelector("#extra")?.focus(); }
+  };
+  const cartBtn = main.querySelector("#cart");
+  if (cartBtn) cartBtn.onclick = () => {
+    main.querySelector("#cart-wrap").innerHTML = `<p class="hint">Sets these quantities in your PC Express cart. Never lowers or removes what's already there.</p>
+      <div class="confirm"><button class="wide ghost" id="cno">Cancel</button><button class="wide go" id="cyes">Send to cart</button></div>`;
+    main.querySelector("#cno").onclick = render;
+    main.querySelector("#cyes").onclick = sendToCart;
+  };
+  main.querySelector("#copy").onclick = () => copy();
+  main.querySelector("#reset").onclick = () => {
+    main.querySelector("#reset-wrap").innerHTML = `<p class="hint">Clears every answer, the extra items and the cart result, on every phone. Hidden items stay hidden.</p>
+      <div class="confirm"><button class="wide ghost" id="no">Keep this list</button><button class="wide" id="yes">Clear and restart</button></div>`;
+    main.querySelector("#no").onclick = render;
+    main.querySelector("#yes").onclick = () => { send({ op: "reset" }); view = "check"; saveView(); render(); window.scrollTo(0, 0); toast("New check started"); };
+  };
+}
+
+async function sendToCart() {
+  cartBusy = true; render();
+  try {
+    // Make sure every tap has reached the server first: the server sends what it has.
+    for (let i = 0; i < 20 && (inflight || pending.length); i++) { await flush(); await new Promise(r => setTimeout(r, 250)); }
+    const r = await api("api/cart", {});
+    base = r.state; recompute();
+    const bad = r.result.lines.filter(l => l.status === "unavailable" || l.status === "error").length;
+    toast(bad ? `Sent, ${bad} need a look` : "Sent to cart");
+  } catch (e) { toast(e.message); }
+  cartBusy = false; render();
+  document.getElementById("result")?.scrollIntoView({ block: "start" });
+}
+
+function listText() {
+  const lines = listLines().flatMap(g => [g.z.toUpperCase(), ...g.rows.map(n => `- ${qty(n)}× ${n.need} (${n.usual.name})`), ""]);
+  if (S.extras.length) lines.push("ALSO", ...S.extras.map(x => "- " + x.text));
+  return lines.join("\n").trim();
+}
+async function copy() {
+  const text = listText();
+  try { await navigator.clipboard.writeText(text); toast("List copied"); }
+  catch {
+    const ta = document.createElement("textarea"); ta.value = text; ta.style.cssText = "width:100%;height:12rem;margin-top:12px;font:0.85rem var(--mono)";
+    ta.readOnly = true; document.getElementById("main").append(ta); ta.select(); toast("Select all and copy");
+  }
+}
+
+let toastT;
+function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
+const saveView = () => { try { localStorage.setItem(VIEW_KEY, view); } catch {} };
+
+function render() {
+  const main = document.getElementById("main");
+  if (!DATA) {
+    main.innerHTML = `<div class="empty"><strong>${building ? "Reading your orders…" : "No checklist yet"}</strong>
+      ${building ? "This takes about a minute the first time." : buildError ? esc(buildError) : ""}
+      ${building ? "" : `<button class="wide" id="refresh">Build from orders</button>`}</div>`;
+    main.querySelector("#refresh")?.addEventListener("click", refresh);
+    return;
+  }
+  shownVersion = S.version;
+  header();
+  ({ check: renderCheck, list: renderList })[view](main);
+}
+function setData(d) { DATA = d; ZONES = d.layout.map(l => l.zone); STORE_ORDER = d.storeOrder; }
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { view = b.dataset.view; saveView(); render(); window.scrollTo(0, 0); });
+
+(async function start() {
+  try {
+    const r = await api("api/data");
+    building = r.building; buildError = r.error; base = r.state; recompute();
+    if (r.checklist) setData(r.checklist);
+    render();
+  } catch (e) {
+    document.getElementById("main").innerHTML = `<div class="empty"><strong>Couldn't load</strong>${esc(e.message)}</div>`;
+    setTimeout(start, 5000);
+  }
+})();
+</script>
+</body></html>
